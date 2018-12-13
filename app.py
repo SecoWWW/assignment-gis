@@ -37,39 +37,43 @@ def scripts():
 def bulma():
     return send_file('node_modules/bulma/css/bulma.css')
 
-@app.route('/css/leaflet.css')
-def leaflet_css():
-    return send_file('node_modules/leaflet/dist/leaflet.css')
-
-@app.route('/js/leaflet.js')
-def leaflet_js():
-    return send_file('node_modules/leaflet/dist/leaflet.js')
 
 # @app.route('/js/mapbox-gl.js')
 # def mapboxgl():
 #     return send_file('node_modules/mapbox-gl/dist/mapbox-gl.js')
-"SELECT ST_AsGeoJSON(ST_Transform(way, 4326)::geography) FROM planet_osm_line LIMIT 1"
+# "SELECT ST_AsGeoJSON(ST_Transform(way, 4326)::geography) FROM planet_osm_line LIMIT 1"
 @app.route('/points')
-def connection():
-    latitude = request.args.get("latitude")
-    print(latitude)
-    longitude = request.args.get("longitude")
-    print(longitude)
+def points():
+    latitude = request.args.get("latitude")    
+    longitude = request.args.get("longitude")    
     curr = conn.cursor()
-    curr.execute("SELECT json_build_object(\
-		'type', 'Feature',\
-		'geometry', ST_AsGeoJSON(ST_Transform(way, 4326)::geography),\
-		'name', name,\
-		'amenity', amenity\
-		)\
-        FROM planet_osm_point\
-        WHERE ST_DWITHIN(ST_SetSRID(ST_MakePoint(%(longitude)f, %(latitude)f), 4326)::geography,ST_Transform(way, 4326)::geography,100) \
-        AND name IS NOT NULL" % {'latitude': float(latitude), 'longitude': float(longitude)})
+
+    query = "   SELECT name, amenity, building, ST_AsGeoJSON(ST_Transform(way, 4326)::geography) FROM planet_osm_point \
+                WHERE ST_DWITHIN(ST_SetSRID(ST_MakePoint(%(longitude)f, %(latitude)f), 4326)::geography,ST_Transform(way, 4326)::geography,200) \
+                AND name IS NOT NULL AND amenity IN ('fast_food', 'bar', 'restaurant', 'nightclub') \
+                UNION ALL ( SELECT b.name, b.amenity, b.building, ST_AsGeoJSON(ST_Transform(b.way, 4326)::geography) FROM planet_osm_polygon b \
+		                    WHERE ST_DWITHIN(ST_SetSRID(ST_MakePoint(%(longitude)f, %(latitude)f), 4326)::geography,ST_Transform(b.way, 4326)::geography,200) \
+		                    AND (b.building = 'hospital' OR b.amenity = 'parking'))" % {'latitude': float(latitude), 'longitude': float(longitude)}
+
+    curr.execute(query)
     
     rows = curr.fetchall()
     print(rows)
     return jsonify(rows)
 
+@app.route('/beats')
+def beats():
+    pass
+
 if __name__ == "__main__":
     app.run()
     # db_connect()
+
+
+
+# json_build_object(\
+# 		'type', 'Feature',\
+# 		'geometry', ST_AsGeoJSON(ST_Transform(way, 4326)::geography),\
+# 		'name', name,\
+# 		'amenity', amenity\
+# 		)\
