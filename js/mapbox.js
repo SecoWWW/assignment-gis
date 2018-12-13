@@ -1,5 +1,6 @@
 import mapboxgl from 'mapbox-gl';
 import { inherits } from 'util';
+import * as func from './functions';
 
 var debug = null;
 var marker = null;
@@ -7,6 +8,17 @@ var map = null;
 var layers = [];
 var marker_begin = null;
 var marker_end = null;
+var color1 = {
+    r: 173,
+    g: 255,
+    b: 47
+};
+var color2 = {
+    r: 178,
+    g: 34,
+    b: 34
+}
+
 
 
 var firstFunctionality = null;
@@ -28,6 +40,7 @@ document.onreadystatechange = () => {
 
 firstFunctionality = function firstFunctionality() {
     console.log("Setting up first functionality")
+    removeLayers();
 
     marker = new mapboxgl.Marker({
         draggable: true
@@ -41,6 +54,7 @@ firstFunctionality = function firstFunctionality() {
 secondFunctionality = function secondFunctionality() {
     console.log("Setting up second functionality")
     marker.remove();    
+    removeLayers();
 
     makeActive("second-functionality", "first-functionality", "third-functionality");
 
@@ -50,6 +64,7 @@ secondFunctionality = function secondFunctionality() {
 thirdFunctionality = function thirdFunctionality() {
     console.log("Setting up third functionality")
     marker.remove();
+    removeLayers();
 
     makeActive("third-functionality", "second-functionality", "first-functionality");
 }
@@ -76,7 +91,27 @@ function getIcon(amenity) {
 }
 
 
-
+function normalizeValues(array){
+    // var min = 500000;
+    // var max = 0;
+    // for (var i = 0; i < array.length; i++){
+    //     if (array[i][1] < min) {
+    //         min = array[i][1]
+    //     }
+    //     if (array[i][1] > max) {
+    //         max = array[i][1]
+    //     }
+    // }
+    // var difference = max - min;
+    // for (var i = 0; i < array.length; i++){
+    //     var normalizedValue = (array[i][1] - min)/(difference)
+    //     array[i].push(normalizedValue)
+    // }
+    
+    //quantile interpolation
+    array.sort((a,b) => a[1] - b[1]).forEach((e, i, a) => { e.push(i/(a.length - 1)); })
+    console.log(array)
+}
 
 
 
@@ -123,6 +158,35 @@ function addPolygon(coordinatesList, color, id) {
                 'geometry': {
                     'type': 'Polygon',
                     'coordinates': coordinatesList
+                },
+                "properties": {
+                    "title": 'parking'                                           
+                }
+            }
+        },
+        'layout': {},
+        'paint': {
+            'fill-color': color,
+            'fill-opacity': 0.4
+        }
+    });
+    createToolTip(id);
+}
+
+function addMultipolygon(coordinatesList, color, title, id){
+    map.addLayer({
+        'id': id,
+        'type': 'fill',
+        'source': {
+            'type': 'geojson',
+            'data': {
+                'type': 'Feature',
+                'geometry': {
+                    'type': 'MultiPolygon',
+                    'coordinates': coordinatesList
+                },
+                "properties": {
+                    "title": title                                           
                 }
             }
         },
@@ -132,6 +196,7 @@ function addPolygon(coordinatesList, color, id) {
             'fill-opacity': 0.8
         }
     });
+    createToolTip(id);
 }
 
 function addLine() {
@@ -184,7 +249,8 @@ function addLine() {
 
 
 function getPointsInRange() {
-    var lngLat = marker.getLngLat();                      
+    var lngLat = marker.getLngLat(); 
+    console.log(lngLat)                 
     
     var xhr = new XMLHttpRequest();
     xhr.open('GET','/points?longitude=' + lngLat.lng.toString() + '&latitude=' + lngLat.lat.toString());
@@ -222,8 +288,20 @@ function showBeats() {
     xhr.setRequestHeader('Content-type', 'application/json');
 
     xhr.addEventListener('load', function() {
+        var array = xhr.response;
+        console.log(array)
+
+        normalizeValues(array);
+        for (var i = 0; i < array.length; i++){
+            var color = func.interpolateColor(color1, color2, array[i][array[i].length-1])            
+            layers.push("point" + i.toString());            
+            var localJSON = JSON.parse(array[i][2]);
+            addMultipolygon(localJSON.coordinates, "#" + func.fullColorHex(color), "BeatID: " + array[i][0] + " -> " + array[i][1].toString(), "point" + i.toString());
+        }
+        
 
     });
+
     xhr.send();    
 }
 
@@ -251,4 +329,24 @@ function makeActive(active, remove, remove2){
 
     var element = document.getElementById(remove2);
     element.classList.remove('is-active');
+}
+
+
+function createToolTip(layer) {
+    map.on('click', layer, function (e) {
+        new mapboxgl.Popup()
+            .setLngLat(e.lngLat)
+            .setHTML(e.features[0].properties.title)
+            .addTo(map);
+    });
+
+    // Change the cursor to a pointer when the mouse is over the states layer.
+    map.on('mouseenter', layer, function () {
+        map.getCanvas().style.cursor = 'pointer';
+    });
+
+    // Change it back to a pointer when it leaves.
+    map.on('mouseleave', layer, function () {
+        map.getCanvas().style.cursor = '';
+    });
 }

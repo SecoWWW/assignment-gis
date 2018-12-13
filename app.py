@@ -63,7 +63,15 @@ def points():
 
 @app.route('/beats')
 def beats():
-    pass
+    curr = conn.cursor()
+    query = "   SELECT b.beat_num, SUM(cd.crimes_count), ST_AsGeoJSON(ST_SetSRID(b.geom, 4326)::geography) FROM chicago_beats b\
+                INNER JOIN crime_data AS cd ON cd.beat = TRIM (LEADING '0' FROM b.beat_num)\
+                GROUP BY b.beat_num, b.geom"
+    curr.execute(query)
+    rows = curr.fetchall()
+    print(rows)
+    return jsonify(rows)
+    
 
 if __name__ == "__main__":
     app.run()
