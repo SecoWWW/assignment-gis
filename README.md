@@ -20,8 +20,14 @@ Build a map-based application, which lets the user see geo-based data on a map a
 
 Fill in (either in English, or in Slovak):
 
-**Application description**: ``
+**Application description**: `Application contains miscellaneous functionality which is supposed to help policemen in their work `
+
+1. Shows policeman, in range of 200 meters, nearby restaurants, bars, fast-foods, nightclubs. And also parking lots, and hospitals.
+
+2. Show in last exported data, a choropleth map of police beats. This map represents the number of arrests in last 4 years. By clicking on it the policemen will see how many arrests were made.
+
+3. By moving the 2 marker we will see line created by them. After clicking on the button **Search waters**, the map will highlight certain types of water which intersect with the drawn line.
 
 **Data source**: `https://www.openstreetmap.org, https://data.cityofchicago.org/`
 
-**Technologies used**: `<fill in>`
+**Technologies used**: `MapBox-gl-js, PostGIS, Flask, Bulma`

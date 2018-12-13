@@ -19,42 +19,41 @@ var color2 = {
     b: 34
 }
 
-
-
 var firstFunctionality = null;
 var secondFunctionality = null;
 var thirdFunctionality = null;
+var searchWaterWays = null;
 
-document.onreadystatechange = () => {    
-    if (document.readyState == 'complete') {
-        mapboxgl.accessToken = 'pk.eyJ1Ijoic2Vjb3d3dyIsImEiOiJjanAzejdxanIwbGRmM3BwaGUwNmM2dHJtIn0.wN3XZTKDpYQiWCz46HLgdw';
-        map = new mapboxgl.Map({
-            container: 'map',
-            style: 'mapbox://styles/secowww/cjpmtv6sj1ofd2sm5xj84niu3',
-            center: [-87.6298, 41.8781], // starting position [lng, lat]
-            zoom: 10 // starting zoom
-        });      
-        init();                
-    }
-}
+// ***** binding of buttons
 
-firstFunctionality = function firstFunctionality() {
-    console.log("Setting up first functionality")
+firstFunctionality = function firstFunctionality() {    
     removeLayers();
+    removeLayerById('balistic');
 
     marker = new mapboxgl.Marker({
         draggable: true
-    }).setLngLat([-87.6298, 41.8781]).addTo(map);
+    }).setLngLat([-87.6298, 41.8781]).addTo(map);    
+
     marker.on('dragend', getPointsInRange);
+
+    if (marker_begin != null){
+        marker_begin.remove();
+        marker_end.remove();
+    } 
 
     makeActive("first-functionality", "second-functionality", "third-functionality");
 }
 
 
-secondFunctionality = function secondFunctionality() {
-    console.log("Setting up second functionality")
+secondFunctionality = function secondFunctionality() {    
     marker.remove();    
     removeLayers();
+    removeLayerById('balistic');
+
+    if (marker_begin != null){
+        marker_begin.remove();
+        marker_end.remove();
+    } 
 
     makeActive("second-functionality", "first-functionality", "third-functionality");
 
@@ -62,58 +61,28 @@ secondFunctionality = function secondFunctionality() {
 }
 
 thirdFunctionality = function thirdFunctionality() {
-    console.log("Setting up third functionality")
     marker.remove();
     removeLayers();
 
-    makeActive("third-functionality", "second-functionality", "first-functionality");
-}
+    layers.push("balistic");
 
-function removeLayers() {
-    for (var i = 0; i < layers.length; i++){
-        map.removeLayer(layers[i]);
-        map.removeSource(layers[i]);
-    }
-    layers = []
-}
+    marker_begin = new mapboxgl.Marker({
+        draggable: true
+    }).setLngLat([-87.6298, 41.8781]).addTo(map);
 
-function getIcon(amenity) {
-    switch(amenity) {
-        case 'fast_food':
-            return 'fast-food';
-        case 'bar':
-            return 'bar';
-        case 'restaurant':
-            return 'restaurant';
-        case 'nightclub':
-            return 'music';
-    }
+    marker_end = new mapboxgl.Marker({
+        draggable: true
+    }).setLngLat([-87.6300, 41.8800]).addTo(map);
+
+    marker_begin.on('dragend', drawLine);
+    marker_end.on('dragend', drawLine);
+
+    makeActive("third-functionality", "second-functionality", "first-functionality");    
 }
 
 
-function normalizeValues(array){
-    // var min = 500000;
-    // var max = 0;
-    // for (var i = 0; i < array.length; i++){
-    //     if (array[i][1] < min) {
-    //         min = array[i][1]
-    //     }
-    //     if (array[i][1] > max) {
-    //         max = array[i][1]
-    //     }
-    // }
-    // var difference = max - min;
-    // for (var i = 0; i < array.length; i++){
-    //     var normalizedValue = (array[i][1] - min)/(difference)
-    //     array[i].push(normalizedValue)
-    // }
-    
-    //quantile interpolation
-    array.sort((a,b) => a[1] - b[1]).forEach((e, i, a) => { e.push(i/(a.length - 1)); })
-    console.log(array)
-}
 
-
+// **** Functions which add geometry to the map
 
 function addPoint(lati, long, name, icon, id) {        
         map.addLayer({
@@ -147,7 +116,7 @@ function addPoint(lati, long, name, icon, id) {
         });            
 }
 
-function addPolygon(coordinatesList, color, id) {
+function addPolygon(coordinatesList, color, title, opacity, id) {
     map.addLayer({
         'id': id,
         'type': 'fill',
@@ -160,14 +129,14 @@ function addPolygon(coordinatesList, color, id) {
                     'coordinates': coordinatesList
                 },
                 "properties": {
-                    "title": 'parking'                                           
+                    "title": title                                           
                 }
             }
         },
         'layout': {},
         'paint': {
             'fill-color': color,
-            'fill-opacity': 0.4
+            'fill-opacity': opacity
         }
     });
     createToolTip(id);
@@ -199,40 +168,21 @@ function addMultipolygon(coordinatesList, color, title, id){
     createToolTip(id);
 }
 
-function addLine() {
+function addLine(coordinates, title, color, id) {
+    console.log("addingLine")
     map.addLayer({
-        "id": "route",
+        "id": id,
         "type": "line",
         "source": {
             "type": "geojson",
             "data": {
-                "type": "Feature",
-                "properties": {},
+                "type": "Feature",                
                 "geometry": {
                     "type": "LineString",
-                    "coordinates": [
-                        [-122.48369693756104, 37.83381888486939],
-                        [-122.48348236083984, 37.83317489144141],
-                        [-122.48339653015138, 37.83270036637107],
-                        [-122.48356819152832, 37.832056363179625],
-                        [-122.48404026031496, 37.83114119107971],
-                        [-122.48404026031496, 37.83049717427869],
-                        [-122.48348236083984, 37.829920943955045],
-                        [-122.48356819152832, 37.82954808664175],
-                        [-122.48507022857666, 37.82944639795659],
-                        [-122.48610019683838, 37.82880236636284],
-                        [-122.48695850372314, 37.82931081282506],
-                        [-122.48700141906738, 37.83080223556934],
-                        [-122.48751640319824, 37.83168351665737],
-                        [-122.48803138732912, 37.832158048267786],
-                        [-122.48888969421387, 37.83297152392784],
-                        [-122.48987674713133, 37.83263257682617],
-                        [-122.49043464660643, 37.832937629287755],
-                        [-122.49125003814696, 37.832429207817725],
-                        [-122.49163627624512, 37.832564787218985],
-                        [-122.49223709106445, 37.83337825839438],
-                        [-122.49378204345702, 37.83368330777276]
-                    ]
+                    "coordinates": coordinates 
+                },
+                "properties": {
+                    "title": title                                           
                 }
             }
         },
@@ -241,16 +191,16 @@ function addLine() {
             "line-cap": "round"
         },
         "paint": {
-            "line-color": "#888",
+            "line-color": color,
             "line-width": 8
         }
     });
 }
 
+// *** Functions which get data from the server
 
 function getPointsInRange() {
-    var lngLat = marker.getLngLat(); 
-    console.log(lngLat)                 
+    var lngLat = marker.getLngLat();                  
     
     var xhr = new XMLHttpRequest();
     xhr.open('GET','/points?longitude=' + lngLat.lng.toString() + '&latitude=' + lngLat.lat.toString());
@@ -258,8 +208,7 @@ function getPointsInRange() {
     xhr.setRequestHeader('Content-type', 'application/json');
 
     xhr.addEventListener('load', function() {                
-        var array = xhr.response;     
-        console.log(array)           
+        var array = xhr.response;                  
         removeLayers();
         
         for (var i = 0; i < array.length; i++){            
@@ -270,10 +219,10 @@ function getPointsInRange() {
             }
             if (localJSON.type == "Polygon"){
                 if (array[i][1] == 'parking'){
-                    addPolygon(localJSON.coordinates, '#1E90FF', 'point' + i.toString());
+                    addPolygon(localJSON.coordinates, '#1E90FF', (array[i][0] == null?"":array[i][0]) + ' /parking', 0.4, 'point' + i.toString());
                 }
                 else {
-                    addPolygon(localJSON.coordinates, '#B22222', 'point' + i.toString());
+                    addPolygon(localJSON.coordinates, '#B22222', array[i][0], 0.4, 'point' + i.toString());
                 }
             }
         }
@@ -288,8 +237,7 @@ function showBeats() {
     xhr.setRequestHeader('Content-type', 'application/json');
 
     xhr.addEventListener('load', function() {
-        var array = xhr.response;
-        console.log(array)
+        var array = xhr.response;        
 
         normalizeValues(array);
         for (var i = 0; i < array.length; i++){
@@ -297,27 +245,87 @@ function showBeats() {
             layers.push("point" + i.toString());            
             var localJSON = JSON.parse(array[i][2]);
             addMultipolygon(localJSON.coordinates, "#" + func.fullColorHex(color), "BeatID: " + array[i][0] + " -> " + array[i][1].toString(), "point" + i.toString());
-        }
-        
-
+        }        
     });
 
     xhr.send();    
 }
 
-  
-
-function init() {
-    var first = document.getElementById("first-functionality");
-    first.addEventListener("click", firstFunctionality);
+function drawLine() {    
+    removeLayerById("balistic")
+    var coordinates = [[marker_begin.getLngLat().lng, marker_begin.getLngLat().lat], [marker_end.getLngLat().lng, marker_end.getLngLat().lat]]
+    addLine(coordinates, "balistic", "#e600e6", "balistic")
     
-    var second = document.getElementById("second-functionality");
-    second.addEventListener("click", secondFunctionality);
-    
-    var third = document.getElementById("third-functionality");
-    third.addEventListener("click", thirdFunctionality);
+}
 
-    first.click();
+searchWaterWays = function searchWaterWays() {
+
+    var latitude1 = marker_begin.getLngLat().lat;
+    var latitude2 = marker_end.getLngLat().lat;
+    var longitude1 = marker_begin.getLngLat().lng;
+    var longitude2 = marker_end.getLngLat().lng;    
+
+    var xhr = new XMLHttpRequest();
+    xhr.open('GET','/water?longitude1=' + longitude1.toString() + '&latitude1=' + latitude1.toString() + '&longitude2=' + longitude2.toString() + '&latitude2=' + latitude2.toString());
+    xhr.responseType = 'json';
+    xhr.setRequestHeader('Content-type', 'application/json');
+
+    xhr.addEventListener('load', function() {
+        var array = xhr.response;            
+        removeLayers();
+        console.log(array)
+        
+        for (var i = 0; i < array.length; i++){            
+            var localJSON = JSON.parse(array[i][3]);            
+            layers.push("point" + i.toString());            
+            if (localJSON.type == "LineString"){                                            
+                addLine(localJSON.coordinates, array[i][0], '#b82e8a', "point" + i.toString())
+            }
+            if (localJSON.type == "Polygon"){                
+                addPolygon(localJSON.coordinates, '#b82e8a', (array[i][0] == null?"":array[i][0]) + ' /lake?', 1.0, 'point' + i.toString());                
+            }
+        }
+        
+    });
+
+    xhr.send(); 
+}
+
+// **** miscellaneous fucntions which make life easier
+
+function getIcon(amenity) {
+    switch(amenity) {
+        case 'fast_food':
+            return 'fast-food';
+        case 'bar':
+            return 'bar';
+        case 'restaurant':
+            return 'restaurant';
+        case 'nightclub':
+            return 'music';
+    }
+}
+
+
+function normalizeValues(array){
+    // var min = 500000;
+    // var max = 0;
+    // for (var i = 0; i < array.length; i++){
+    //     if (array[i][1] < min) {
+    //         min = array[i][1]
+    //     }
+    //     if (array[i][1] > max) {
+    //         max = array[i][1]
+    //     }
+    // }
+    // var difference = max - min;
+    // for (var i = 0; i < array.length; i++){
+    //     var normalizedValue = (array[i][1] - min)/(difference)
+    //     array[i].push(normalizedValue)
+    // }
+    
+    //quantile interpolation
+    array.sort((a,b) => a[1] - b[1]).forEach((e, i, a) => { e.push(i/(a.length - 1)); })    
 }
 
 function makeActive(active, remove, remove2){
@@ -349,4 +357,50 @@ function createToolTip(layer) {
     map.on('mouseleave', layer, function () {
         map.getCanvas().style.cursor = '';
     });
+}
+
+function removeLayerById(id) {
+    var ducttape = map.getLayer(id);        
+    if (typeof ducttape !== 'undefined'){
+        map.removeLayer(id);
+        map.removeSource(id);
+    }
+    
+}
+
+function removeLayers() {
+    for (var i = 0; i < layers.length; i++){
+        map.removeLayer(layers[i]);
+        map.removeSource(layers[i]);
+    }
+    layers = []
+}
+
+function init() {
+    var first = document.getElementById("first-functionality");
+    first.addEventListener("click", firstFunctionality);
+    
+    var second = document.getElementById("second-functionality");
+    second.addEventListener("click", secondFunctionality);
+    
+    var third = document.getElementById("third-functionality");
+    third.addEventListener("click", thirdFunctionality);
+
+    var searchWater = document.getElementById("search-water-btn");
+    searchWater.addEventListener("click", searchWaterWays);
+
+    first.click();
+}
+
+document.onreadystatechange = () => {    
+    if (document.readyState == 'complete') {
+        mapboxgl.accessToken = 'pk.eyJ1Ijoic2Vjb3d3dyIsImEiOiJjanAzejdxanIwbGRmM3BwaGUwNmM2dHJtIn0.wN3XZTKDpYQiWCz46HLgdw';
+        map = new mapboxgl.Map({
+            container: 'map',
+            style: 'mapbox://styles/secowww/cjpmtv6sj1ofd2sm5xj84niu3',
+            center: [-87.6298, 41.8781], // starting position [lng, lat]
+            zoom: 10 // starting zoom
+        });      
+        init();                
+    }
 }
