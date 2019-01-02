@@ -8,11 +8,11 @@ This application helps policemen do their jobs more effectively, and show the po
 
 This is it in action:
 #### First functionality
-![Screenshot](first.png)
+![Screenshot](first.PNG)
 #### Second functionality
-![Screenshot](second.png)
+![Screenshot](second.PNG)
 #### Third functionality
-![Screenshot](third.png)
+![Screenshot](third.PNG)
 
 The application has 2 separate parts, the client which is a [frontend web application](#frontend) using mapbox API and mapbox.js and the [backend application](#backend) written in [Python](https://www.python.org/), backed by PostGIS. The frontend application communicates with backend using a [REST API](#api).
 
